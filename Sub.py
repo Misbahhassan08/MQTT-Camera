@@ -4,17 +4,17 @@ import paho.mqtt.client as mqtt
 from helpers import get_now_string,base64_to_pil
 
 class Sub:
-    def __init__(self) :
+    def __init__(self, server , port ,path) :
         self.clientMqtt = mqtt.Client()  # Sub is for Payload
-        self.clientMqtt.connect("test.mosquitto.org", 1883, 60)  # Connecting Sub to mosquitto
+        self.clientMqtt.connect(server, port, 60) #Connecting Sub to mosquitto
         self.payload = None  # payload Variable
         self.topic = "pro1/rpi/#"  # Topic Address Variable
-
+        self.path = path
         # --------- Initialize the Sub functions with proper function explain
         self.clientMqtt.on_message = self.on_message
         self.clientMqtt.on_connect = self.on_connect
         self.clientMqtt.on_subscribe = self.on_subscribe
-        self.clientMqtt.max_queued_messages_set(1)
+        #self.clientMqtt.max_queued_messages_set(1)
         self.clientMqtt.subscribe(self.topic, 1)
         time.sleep(4)
         self.clientMqtt.loop_start()

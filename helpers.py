@@ -4,9 +4,11 @@ Source -> https://github.com/jrosebr1/imutils/blob/master/imutils/video/webcamvi
 """
 import datetime
 import base64
-import datetime
+import time
 from io import BytesIO
 from PIL import Image
+import picamera
+from fractions import Fraction
 
 DATETIME_STR_FORMAT = "%Y-%m-%d_%H:%M:%S.%f"
 
@@ -21,17 +23,41 @@ def base64_to_pil(image_base64):
 def buffer_to_base64(image_buffer, encoding='utf-8'):
     return base64.b64encode(image_buffer.getvalue()).decode(encoding)
 
-def pil_to_base64(image_pil, encoding='utf-8', format='jpeg'):
+def pil_to_base64(image_pil,params, encoding='utf-8'):
     image_buffer = BytesIO()
-    image_pil.save(image_buffer, format=format)
+    image_pil.save(image_buffer, format=params['raw'])
     return buffer_to_base64(image_buffer, encoding=encoding)
 
-def capture_buffer(camera, format='jpeg'):
-    
-    stream = BytesIO()
-    camera.capture(stream, format=format)
-    stream.seek(0)
-    return stream
+def capture_buffer(params):
+    with picamera.PiCamera() as camera:
+        
+        camera.framerate=1#Fraction(1, 6)
+        camera.shutter_speed = int(str(params['expose_time']))*1000000#6000000
+        camera.resolution= params['resolution']
+        camera.iso = params['iso']
+        camera.exposure_mode = params['exposure_mode']#'night'
+        camera.awb_mode = params['white_balance']
+        camera.brightness = params['brightness']
+        camera.contrast = params['contrast']
+        camera.saturation = params['saturation']
+        camera.sharpness = params['sharpness']
+        
+        
+        
+        print(params)
+        
+        stream = BytesIO()
+        
+        camera.start_preview()
 
-def capture_pil(camera, format='jpeg'):
-    return Image.open(capture_buffer(camera, format=format))
+        try:
+            
+            camera.capture(stream, format=params['raw'])
+            stream.seek(0)
+        finally:
+            camera.stop_preview()
+            
+        return stream
+
+def capture_pil(params):
+    return Image.open(capture_buffer(params))
