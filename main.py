@@ -11,7 +11,8 @@ from window import Ui_MainWindow
 import threading
 from PIL import Image
 from PIL.ImageQt import ImageQt
-#from scipy.ndimage import imread
+import os
+from PyQt5.QtCore import QThread, pyqtSignal
 
 class GUI(QtWidgets.QWidget, Ui_MainWindow):
     def __init__(self):
@@ -80,72 +81,103 @@ class GUI(QtWidgets.QWidget, Ui_MainWindow):
             
         for x in raw :
             self.cb_raw.addItem(x)
+            
+        
         
         pass # end on __init__ function of GUI
     
-    def load_image(self, image_name):
-        input_image = Image.open(image_name)#imread(image_name)
-        im = input_image.convert("RGBA")
-        data = im.tobytes("raw", "RGBA")
-        
-        qim = QImage(data, im.size[0], im.size[1], QImage.Format_RGBA8888)
+    def load_image(self, path):
+        selected_image = self.cb_select_image.currentText()
+        if len(selected_image) > 0:
+            input_image = Image.open(f'{path}{selected_image}')#imread(image_name)
+            im = input_image.convert("RGBA")
+            data = im.tobytes("raw", "RGBA")
+            
+            qim = QImage(data, im.size[0], im.size[1], QImage.Format_RGBA8888)
 
-        pixmap = QPixmap.fromImage(qim)
-        self.pixmap = QPixmap(pixmap)
-        self.lbl_Image.setPixmap(self.pixmap)
-        self.lbl_Image.setAlignment(QtCore.Qt.AlignCenter)
-        self.lbl_Image.setScaledContents(True)
-        self.lbl_Image.setMinimumSize(1,1)
-        self.lbl_Image.show()
+            pixmap = QPixmap.fromImage(qim)
+            self.pixmap = QPixmap(pixmap)
+            self.lbl_Image.setPixmap(self.pixmap)
+            self.lbl_Image.setAlignment(QtCore.Qt.AlignCenter)
+            self.lbl_Image.setScaledContents(True)
+            self.lbl_Image.setMinimumSize(1,1)
+            self.lbl_Image.show()
+        else:
+            print('NOTE: No Image found in Drop Down Selection')
         pass # end of load image function
         
         
     pass
 
 
-class MAIN(threading.Thread):
+class MAIN(QThread):
+
     def __init__(self):
-        threading.Thread.__init__(self)
+        QThread.__init__(self)
         self.thread_loop = True
         # RPi ID , should be unique
         self.gui = GUI()
         self.gui.show()
-        RPI_ID = 3
-        server = "192.168.10.11"
-        port = 1883
         
-        self.path = 'Images/'
+        
+        RPI_ID = 3
+        server = "192.168.10.9"
+        port = 1883
+        self.ROOT = os.getcwd()
+        self.path = f'{self.ROOT}/Images/'
         self.ImageName = ''
         self.Iwidth = 100
         self.Iheight = 100
         
         # init rpi as publisher with unique id (used in MQTT topic)
         self.pub = Pub(RPI_ID, server, port)
+        # pub class singal emiter 
+        self.pub.signal_pub.connect(self.update_cb_images)
         
         # init rpi as subscriber to subscripbe all rpi's in define MQTT topic
-        self.sub = Sub(server, port, self.path)
+        self.sub = Sub(server, port, self.path, RPI_ID)
+        # sub class signal emiters
+        self.sub.signal_sub.connect(self.send_feedback_to_publisher)
+        self.sub.signal_log.connect(self.update_log)
         
         # set booleans for GUI Int
         self.shoot = False
         self.load_images = False
+        self.ul = False
+        self.ul_mesg = {}
+        
+        # fill the cb if there is any image in Image Folder
+        self.update_cb_images("Update Images")
         
         try:
-            self.gui.load_image(f'{self.path}test.png')
+            self.gui.load_image(self.path)
         except:
             pass
         #clickable(self.txtPassword).connect(self.presstxt_password)
         self.gui.btn_shoot.clicked.connect(lambda: self.press_shoot())
-        
+        self.gui.btn_loadImage.clicked.connect(lambda: self.gui.load_image(self.path))
         pass # end of main __init__ function
-    def press_shoot(self):
+    def send_feedback_to_publisher(self, params):
         
-        self.shoot = True
+        self.pub.message('fromSub',params, self.path)
+        pass # end of send_feedback_to_publisher function
+    
+    def update_log(self, params):
+        self.ul = True
+        self.ul_mesg = params
+        pass # end of update_log function
+    
+    def log_box(self,_str):
+        self.gui.txt_log.appendPlainText(_str)
+        pass
+        
+    def press_shoot(self):
         self.gui.params['imageName'] = self.gui.txt_fileName.text()
         self.gui.params['exposure_mode'] = self.gui.cb_expMode.currentText()
         self.gui.params['white_balance'] = self.gui.cb_whiteBalanceMode.currentText()
         self.gui.params['raw'] = self.gui.cb_raw.currentText()
         try:
-           
+            
             self.Iwidth = int(self.gui.txt_imageWidth.text())
             self.Iheight = int(self.gui.txt_imageHeight.text())
             self.gui.params['resolution'] = (self.Iwidth, self.Iheight)
@@ -159,24 +191,37 @@ class MAIN(threading.Thread):
             
         except Exception as err:
             print("ERROR : Formation Error, Please Enter correct format")
-            self.shoot = False
+            self.log_box("ERROR : Formation Error, Please Enter correct format")
+            
             return None
         if (len(self.gui.params['imageName']) > 0) and (len(str(self.Iwidth)) > 0) and (len(str(self.Iheight)) > 0):
-            self.pub.message(self.gui.params, self.path)
-            self.shoot = False
+            self.shoot = True
+            self.pub.message('fromMain',self.gui.params, self.path)
+            
             pass
         else:
-            print('Fill the empty Boxes')
-            self.shoot= False
+            self.log_box("Fill the empty Boxes")
+      
             return None
+        self.log_box("End Capturing...")
         
         pass # end of press_shoot function
+    
+    def update_cb_images(self, newstr):
+        params = os.listdir('Images')
+        self.gui.cb_select_image.clear()
+        for x in params:
+            self.gui.cb_select_image.addItem(x)
+            pass 
+        pass #end of update_cb_images function 
     def stop(self):
         self.thread_loop = False
         self.join()
         pass # end of stop function
         
     def run(self):
+        _in = ''
+        _rpi_id = ''
         while self.thread_loop :
             self.gui.lbl_expTime.setText(str(self.gui.slider_expTime.value()))
             self.gui.lbl_iso.setText(str(self.gui.slider_iso.value()))
@@ -184,6 +229,20 @@ class MAIN(threading.Thread):
             self.gui.lbl_contrast.setText(str(self.gui.slider_contrast.value()))
             self.gui.lbl_saturation.setText(str(self.gui.slider_saturation.value()))
             self.gui.lbl_sharpness.setText(str(self.gui.slider_sharpness.value()))
+            
+            if self.shoot == True:
+                self.gui.txt_log.appendPlainText('Capturing Start')
+                self.shoot = False
+                
+            if self.ul == True:
+                # {'imgName':_imgName, 'RPI': _sender}
+                log = self.ul_mesg
+                _in = str(log['imgName'])
+                _rpi_id = str(log['RPI'])
+                new_log = '{} - {} downloaded'.format(_rpi_id, _in)
+                self.gui.txt_log.appendPlainText(f'{new_log}')
+                self.ul = False
+                #self.gui.txt_log.appendPlainText('Capturing Complete')
             pass # end of while loop
         pass # end of loop function
     pass # end of main class
