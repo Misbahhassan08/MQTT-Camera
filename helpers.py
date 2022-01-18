@@ -23,7 +23,7 @@ def base64_to_pil(image_base64):
 def buffer_to_base64(image_buffer, encoding='utf-8'):
     return base64.b64encode(image_buffer.getvalue()).decode(encoding)
 
-def pil_to_base64(image_pil,params, encoding='utf-8'):
+def pil_to_base64(image_pil, encoding='utf-8'):
     image_buffer = BytesIO()
     image_pil.save(image_buffer, format=params['raw'])
     return buffer_to_base64(image_buffer, encoding=encoding)

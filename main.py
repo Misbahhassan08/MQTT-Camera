@@ -13,7 +13,7 @@ from PIL import Image
 from PIL.ImageQt import ImageQt
 import os
 from PyQt5.QtCore import QThread, pyqtSignal
-from config import server, RPI_ID
+from config import server, RPI_ID, global_topic, pub_topic, sub_topic, path, ROOT
 from helpers import get_now_string
 
 
@@ -21,6 +21,7 @@ class GUI(QtWidgets.QWidget, Ui_MainWindow):
     def __init__(self):
         QtWidgets.QWidget.__init__(self)
         self.setupUi(self)
+        self.path = path
         # set exposure time slider
         self.slider_expTime.setMaximum(10000000)
         self.slider_expTime.setMinimum(1)
@@ -90,10 +91,10 @@ class GUI(QtWidgets.QWidget, Ui_MainWindow):
         
         pass # end on __init__ function of GUI
     
-    def load_image(self, path):
+    def load_image(self):
         selected_image = self.cb_select_image.currentText()
         if len(selected_image) > 0:
-            input_image = Image.open(f'{path}{selected_image}')#imread(image_name)
+            input_image = Image.open(f'{self.path}{selected_image}')#imread(image_name)
             im = input_image.convert("RGBA")
             data = im.tobytes("raw", "RGBA")
             
@@ -127,17 +128,15 @@ class MAIN(QThread):
         #RPI_ID = 3
         #server = "192.168.10.11"
         port = 1883
-        self.ROOT = os.getcwd()
-        self.path = f'{self.ROOT}/Images/'
+        self.ROOT = ROOT
+        self.path = path
         self.ImageName = ''
         self.Iwidth = 100
         self.Iheight = 100
         
         # init rpi as publisher with unique id (used in MQTT topic)
         self.pub = Pub(RPI_ID, server, port)
-        # pub class singal emiter 
-        self.pub.signal_pub.connect(self.update_cb_images)
-        
+        self.pub.signal_loadImages.connect(self.gui.load_image)
         # init rpi as subscriber to subscripbe all rpi's in define MQTT topic
         self.sub = Sub(server, port, self.path, RPI_ID)
         # sub class signal emiters
@@ -159,7 +158,7 @@ class MAIN(QThread):
             pass
         #clickable(self.txtPassword).connect(self.presstxt_password)
         self.gui.btn_shoot.clicked.connect(lambda: self.press_shoot())
-        self.gui.btn_loadImage.clicked.connect(lambda: self.gui.load_image(self.path))
+        self.gui.btn_loadImage.clicked.connect(lambda: self.gui.load_image())
         pass # end of main __init__ function
     
     def send_feedback_to_publisher(self, params):
@@ -201,7 +200,7 @@ class MAIN(QThread):
             return None
         if (len(self.gui.params['imageName']) > 0) and (len(str(self.Iwidth)) > 0) and (len(str(self.Iheight)) > 0):
             self.shoot = True
-            self.pub.message('fromMain',self.gui.params, self.path)
+            self.pub.message(self.gui.params, self.path)
             
             pass
         else:
@@ -242,14 +241,9 @@ class MAIN(QThread):
                 self.shoot = False
                 
             if self.ul == True:
-                # {'imgName':_imgName, 'RPI': _sender}
-                log = self.ul_mesg
-                _in = str(log['imgName'])
-                _rpi_id = str(log['RPI'])
-                new_log = '{} - {} downloaded'.format(_rpi_id, _in)
-                self.gui.txt_log.appendPlainText(f'{new_log}')
+                self.gui.txt_log.appendPlainText(self.ul_mesg)
                 self.ul = False
-                #self.gui.txt_log.appendPlainText('Capturing Complete')
+                pass
             pass # end of while loop
         pass # end of loop function
     pass # end of main class
