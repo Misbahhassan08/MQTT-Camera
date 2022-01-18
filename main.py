@@ -13,13 +13,16 @@ from PIL import Image
 from PIL.ImageQt import ImageQt
 import os
 from PyQt5.QtCore import QThread, pyqtSignal
+from config import server, RPI_ID
+from helpers import get_now_string
+
 
 class GUI(QtWidgets.QWidget, Ui_MainWindow):
     def __init__(self):
         QtWidgets.QWidget.__init__(self)
         self.setupUi(self)
         # set exposure time slider
-        self.slider_expTime.setMaximum(10)
+        self.slider_expTime.setMaximum(10000000)
         self.slider_expTime.setMinimum(1)
         self.slider_expTime.setSliderPosition(6)
         
@@ -62,6 +65,7 @@ class GUI(QtWidgets.QWidget, Ui_MainWindow):
         # params for camera sensor set form GUI
         self.params = {
             'imageName':'test.png',
+            'time':'123',
             'resolution':(100, 100), # width , height
             'expose_time': 6 ,# from 1-10 seconds (v1 support 6sec and v2 support 10 seconds),
             'exposure_mode': 'auto',
@@ -120,8 +124,8 @@ class MAIN(QThread):
         self.gui.show()
         
         
-        RPI_ID = 3
-        server = "192.168.10.9"
+        #RPI_ID = 3
+        #server = "192.168.10.11"
         port = 1883
         self.ROOT = os.getcwd()
         self.path = f'{self.ROOT}/Images/'
@@ -157,9 +161,9 @@ class MAIN(QThread):
         self.gui.btn_shoot.clicked.connect(lambda: self.press_shoot())
         self.gui.btn_loadImage.clicked.connect(lambda: self.gui.load_image(self.path))
         pass # end of main __init__ function
+    
     def send_feedback_to_publisher(self, params):
-        
-        self.pub.message('fromSub',params, self.path)
+        self.pub.messageToTopic(params)
         pass # end of send_feedback_to_publisher function
     
     def update_log(self, params):
@@ -176,10 +180,11 @@ class MAIN(QThread):
         self.gui.params['exposure_mode'] = self.gui.cb_expMode.currentText()
         self.gui.params['white_balance'] = self.gui.cb_whiteBalanceMode.currentText()
         self.gui.params['raw'] = self.gui.cb_raw.currentText()
+        self.gui.params['time'] = get_now_string()
         try:
             
             self.Iwidth = int(self.gui.txt_imageWidth.text())
-            self.Iheight = int(self.gui.txt_imageHeight.text())
+            self.Iheight = int(self.gui.txt_imageHeight.text()) 
             self.gui.params['resolution'] = (self.Iwidth, self.Iheight)
             self.gui.params['expose_time'] = int(self.gui.lbl_expTime.text())
             self.gui.params['iso'] = int(self.gui.lbl_iso.text())
@@ -208,7 +213,9 @@ class MAIN(QThread):
         pass # end of press_shoot function
     
     def update_cb_images(self, newstr):
-        params = os.listdir('Images')
+        if not os.path.exists(self.path):
+            os.makedirs(self.path)
+        params = os.listdir(self.path)
         self.gui.cb_select_image.clear()
         for x in params:
             self.gui.cb_select_image.addItem(x)

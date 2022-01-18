@@ -31,8 +31,8 @@ def pil_to_base64(image_pil,params, encoding='utf-8'):
 def capture_buffer(params):
     with picamera.PiCamera() as camera:
         
-        camera.framerate=1#Fraction(1, 6)
-        camera.shutter_speed = int(str(params['expose_time']))*1000000#6000000
+        camera.framerate=10#Fraction(1, 6)
+        camera.shutter_speed = int(str(params['expose_time']))#*1000000#6000000
         camera.resolution= params['resolution']
         camera.iso = params['iso']
         camera.exposure_mode = params['exposure_mode']#'night'

@@ -31,18 +31,43 @@ class Sub(QThread):
 
     
     def on_message(self, mqttc, obj, msg):
-        output = {
-                    'data_type':'image',
-                    'params':params,
-                    #'image': b64_img,
-                    'RPI_ID': self.ID
-                               }
         now = get_now_string()
         print("message on " + str(msg.topic) + f" at {now}")
         self.new_mesg = True
         try:
-            #data = json.loads(msg.payload)
-            self.signal_sub.emit(msg.payload) 
+            
+            data = json.loads(msg.payload)
+            if data['data_type'] == 'image':
+                image_base64 = data['image']
+                image = base64_to_pil(image_base64)
+                #image = image.convert("RGB")
+                rpi_id = data['RPI_ID']
+                if rpi_id == self.ID:
+                    # save file in images
+                    _in = '{}.{}'.format(data['image_name'], data['format'])
+                    save_file_path = f'Images/{_in}'
+                    image.save(save_file_path)
+                    print(f"Saved {save_file_path}")
+                else:
+                    if not os.path.exists(f'RPI{rpi_id}'):
+                        os.makedirs(f'RPI{rpi_id}')
+                    _in = '{}.{}'.format(data['image_name'], data['format'])
+                    save_file_path = f'RPI{rpi_id}/{_in}'
+                    image.save(save_file_path)
+                    print(f"Saved {save_file_path}")
+                    self.signal_sub.emit('{"data_type":"feedback","imageName":'+data['_in']+',"sender":'+self.ID+', "topic":'+msg.topic+'}')
+            elif data['data_type'] == 'feedback':
+                print('feedback from another device')
+                # {'data_type':'feedback','imageName':data['_in'],'sender':self.ID, 'topic':msg.topic}
+                _imgName = data['imageName']
+                __id = data['sender']
+                _sender = f'RPI{__id}'
+                new_output = '{"imgName":'+_imgName+', "RPI": '+_sender+'}'
+                self.signal_log.emit(new_output)
+                
+                pass
+                
+
         except Exception as exc:
             print(exc)
 
@@ -60,6 +85,7 @@ class Sub(QThread):
 
     
     pass # end of class 
+
 
 
 

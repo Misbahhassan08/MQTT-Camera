@@ -61,8 +61,21 @@ class Pub(QThread):
                 print(f'rc : {rc}, mid: {mid}')
             except Exception as error:
                 print(error)
-
-        
+        elif _from == 'fromSub':
+            
+            pass
+        elif _from == 'toTopic': # get trigger from other RPI , get the ID of rpi and then send shoot
+            try:
+                # {'data_type':'feedback','imageName':data['_in'],'sender':self.ID, 'topic':msg.topic}
+                output = josn.loads(params)
+                new_topic = str(output['topic'])
+                output_json = json.dumps(output)
+                (rc, mid) = self.clientMqtt.publish(new_topic, output_json)  # publishing
+                print(f'rc : {rc}, mid: {mid}')
+                pass
+            except Exception as error:
+                print('ERROR : in Publish function of :fromSub: ',error)
+                pass
             pass
         self.signal_pub.emit(str(self.path))
         
@@ -71,6 +84,7 @@ class Pub(QThread):
 
     
     pass # end of class 
+
 
 
 
