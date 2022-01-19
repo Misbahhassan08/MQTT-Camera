@@ -61,7 +61,8 @@ class Pub(QThread):
             _imageName = f'RPI{self.ID}_{imageName}_{_time}.{_format}'
             img.save(f'{path}{_imageName}')
             #b64_img = pil_to_base64(img, params)
-            result = self.db.add_entery(params)
+            #result = self.db.add_entery(params) # for adding every new entry
+            result = self.db.update_entry(params) # for update only last entry
             if result:
                 print('DB save configurations')
             else:

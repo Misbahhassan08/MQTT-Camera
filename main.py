@@ -15,6 +15,7 @@ import os
 from PyQt5.QtCore import QThread, pyqtSignal
 from config import server, RPI_ID, global_topic, pub_topic, sub_topic, path, ROOT
 from helpers import get_now_string
+from Database import Database
 
 
 class GUI(QtWidgets.QWidget, Ui_MainWindow):
@@ -120,13 +121,15 @@ class MAIN(QThread):
     def __init__(self):
         QThread.__init__(self)
         self.thread_loop = True
-        # RPi ID , should be unique
+        
+        # display GUI 
         self.gui = GUI()
         self.gui.show()
         
+        # database Init
+        self.db = Database()
         
-        #RPI_ID = 3
-        #server = "192.168.10.11"
+        # other static varibles
         port = 1883
         self.ROOT = ROOT
         self.path = path
@@ -147,7 +150,7 @@ class MAIN(QThread):
         self.shoot = False
         self.load_images = False
         self.ul = False
-        self.ul_mesg = {}
+        self.ul_mesg = ""
         
         # fill the cb if there is any image in Image Folder
         self.update_cb_images("Update Images")
@@ -159,6 +162,9 @@ class MAIN(QThread):
         #clickable(self.txtPassword).connect(self.presstxt_password)
         self.gui.btn_shoot.clicked.connect(lambda: self.press_shoot())
         self.gui.btn_loadImage.clicked.connect(lambda: self.gui.load_image())
+        self.gui.btn_exit.clicked.connect(lambda: self.closeApp())
+        
+        self.load_data_to_gui()
         pass # end of main __init__ function
     
     def send_feedback_to_publisher(self, params):
@@ -173,7 +179,53 @@ class MAIN(QThread):
     def log_box(self,_str):
         self.gui.txt_log.appendPlainText(_str)
         pass
+    
+    
+    def load_data_to_gui(self):
+        try:
+            data = self.db.get_last_entry()
+            if data[0] == 1:
+                _imageName = data[1]
+                _time = data[2]
+                
+                v = data[3]
+                index = v.split('(')
+                index = index[1].split(')')
+                index = index[0].split(',')
+                
+                _width = int(index[0])
+                _height = int(index[1])
+                _expTime = data[4]
+                _expMode = data[5]
+                _wm = data[6]
+                _iso = data[7]
+                _brightness = data[8]
+                _contrast = data[9]
+                _saturation = data[10]
+                _sharpness = data[11]
+                
+                _raw = data[12]
+                
+                self.gui.txt_fileName.setText(f'{_imageName}')
+                self.gui.txt_imageWidth.setText(f'{str(_width)}')
+                self.gui.txt_imageHeight.setText(f'{str(_height)}')
+                
+                self.gui.slider_expTime.setSliderPosition(int(_expTime))
+                self.gui.slider_iso.setSliderPosition(int(_iso))
+                self.gui.slider_brightness.setSliderPosition(int(_brightness))
+                self.gui.slider_contrast.setSliderPosition(int(_contrast))
+                self.gui.slider_saturation.setSliderPosition(int(_saturation ))
+                self.gui.slider_sharpness.setSliderPosition(int(_sharpness))
+                
+                self.gui.cb_expMode.setCurrentText(f'{str(_expMode)}')
+                self.gui.cb_whiteBalanceMode.setCurrentText(f'{str(_wm)}')
+                self.gui.cb_raw.setCurrentText(f'{str(_raw)}')
+                
+        except Exception as error:
+            print('Error in loading data to Gui : ',error)
         
+        pass # end of load_data_to_gui() function
+    
     def press_shoot(self):
         self.gui.params['imageName'] = self.gui.txt_fileName.text()
         self.gui.params['exposure_mode'] = self.gui.cb_expMode.currentText()
@@ -224,7 +276,12 @@ class MAIN(QThread):
         self.thread_loop = False
         self.join()
         pass # end of stop function
-        
+    
+    def closeApp(self):
+        self.thread_loop = False
+        self.gui.close()
+        self.exit()
+        pass # end of closeApp() function
     def run(self):
         _in = ''
         _rpi_id = ''
