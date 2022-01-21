@@ -66,6 +66,9 @@ class Pub(QThread):
             _format = params['raw']
             _time = str(params['time'])
             _imageName = f'RPI{self.ID}_{imageName}_{_time}.{_format}'
+            
+            if not os.path.exists(path):
+                os.makedirs(path)              
             img.save(f'{path}{_imageName}')
             #b64_img = pil_to_base64(img, params)
             #result = self.db.add_entery(params) # for adding every new entry
