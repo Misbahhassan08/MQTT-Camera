@@ -7,8 +7,8 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from config import server, RPI_ID, global_topic, pub_topic, sub_topic, path, ROOT
 
 class Sub(QThread):
-    signal_sub = pyqtSignal(str,  name='m_signals')
-    signal_log = pyqtSignal(str,  name='m_signals')
+    signal_sub = pyqtSignal(str,  name='m_signals1')
+    signal_log = pyqtSignal(str,  name='m_signals2')
     def __init__(self, server , port ,path, ID) :
         QThread.__init__(self)
         self.clientMqtt = mqtt.Client()  # Sub is for Payload
@@ -16,7 +16,6 @@ class Sub(QThread):
         self.payload = None  # payload Variable
         self.topic = sub_topic  # Topic Address Variable
         self.path = path
-        self.ID = ID
         self.new_mesg = False
         self.ROOT = os.getcwd()
         # --------- Initialize the Sub functions with proper function explain
@@ -34,7 +33,7 @@ class Sub(QThread):
     
     def on_message(self, mqttc, obj, msg):
 
-        if msg.topic == f'{global_topic}RPI{self.ID}':
+        if msg.topic == f'{global_topic}RPI{RPI_ID}':
             print('receiving mesg from itself')
             pass
         else:
@@ -44,23 +43,25 @@ class Sub(QThread):
             self.new_mesg = True
             try:
                 data = json.loads(msg.payload)
+                print(data)
                 if data['data_type'] == 'ReposeImage':
-                    res_rpi = data['RPI_ID']
-                    res_rpi_name = f'RPI{res_rpi}'
-                    path = f'{self.ROOT}/{res_rpi_name}'
-                    img = data['image']
-                    image = base64_to_pil(img)
-                    image_name = '{}_{}_{}.{}'.format(res_rpi_name,data['params']['imageName'],data['params']['time'],data['params']['raw'])
-                    if not os.path.exist(path):
-                        os.makedires(path)
-                    save_file = f'{path}/{image_name}'
-                    image.save(save_file)
-                    # trigger log (################ pending )
-                    self.signal_log.emit(f'{image_name} downloaded')
+                    if data['SERVER_RPI_ID'] == f'RPI{RPI_ID}':
+                        res_rpi = data['CLIENT_RPI_ID']
+                        res_rpi_name = f'{res_rpi}'
+                        path = f'{self.ROOT}/{res_rpi_name}'
+                        img = data['image']
+                        image = base64_to_pil(img)
+                        image_name = '{}_{}_{}.{}'.format(res_rpi_name,data['imageName'],data['time'],data['raw'])
+                        if not os.path.exists(path):
+                            os.makedirs(path)
+                        save_file = f'{path}/{image_name}'
+                        image.save(save_file)
+                        # trigger log (################ pending )
+                        self.signal_log.emit(f'{image_name} downloaded')
                     pass
                 elif data['data_type'] == 'image':
                     # send image to publisher
-                    self.signal_sub.emit(msg.payload)
+                    self.signal_sub.emit(json.dumps(data))
                     pass
             except Exception as exc:
                 print(exc)

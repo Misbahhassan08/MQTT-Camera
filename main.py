@@ -168,6 +168,7 @@ class MAIN(QThread):
         pass # end of main __init__ function
     
     def send_feedback_to_publisher(self, params):
+        #print('In send feedback to publisher function : ',params)
         self.pub.messageToTopic(params)
         pass # end of send_feedback_to_publisher function
     

@@ -1,7 +1,7 @@
 import os
 
-server = '192.168.10.11'
-RPI_ID = 3
+server = '192.168.10.6'
+RPI_ID = 1
 
 global_topic = "pro1/rpi/"
 pub_topic = "{}RPI{}".format(global_topic, RPI_ID)

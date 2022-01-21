@@ -38,17 +38,24 @@ class Pub(QThread):
         pass
     
     def messageToTopic(self,params):
+        params = json.loads(params)
+        print('PARAMS in message to topic : ',params)
         img = capture_pil(params['params'])
-        b64_img = pil_to_base64(img)
+        b64_img = pil_to_base64(img, params)
+        srpi = params['RPI_ID']
         output = {
             'data_type' : 'ReposeImage',
             'image' : b64_img,
-            'RPI_ID' : f'RPI{self.ID}',
-            'params' : params
+            'CLIENT_RPI_ID' : f'RPI{self.ID}',
+            'SERVER_RPI_ID' : f'RPI{srpi}',
+            'imageName' : params['params']['imageName'],
+            'time' : params['params']['time'],
+            'raw': params['params']['raw']
             }
         _topic_id = params['RPI_ID']
-        _topic = f'{global_topic}{RPI}{_topic_id}'
-        (rc, mid) = self.clientMqtt.publish(_topic, output_json)  # publishing
+        _topic = f'{global_topic}RPI{_topic_id}'
+        output_json = json.dumps(output)
+        (rc, mid) = self.clientMqtt.publish(self.topic, output_json)  # publishing
         print(f'rc : {rc}, mid: {mid}')
         pass # end of messageToTopic(params) function
     
