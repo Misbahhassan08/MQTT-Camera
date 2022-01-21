@@ -24,7 +24,7 @@ class Sub(QThread):
         self.clientMqtt.on_subscribe = self.on_subscribe
         #self.clientMqtt.max_queued_messages_set(1)
         self.clientMqtt.subscribe(self.topic, 1)
-        time.sleep(4)
+        time.sleep(2)
         self.clientMqtt.loop_start()
         # -- Test Print to check whole Neuron works perfectly fine
         #print("All Done")

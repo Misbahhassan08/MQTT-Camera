@@ -39,7 +39,6 @@ class Pub(QThread):
     
     def messageToTopic(self,params):
         params = json.loads(params)
-        print('PARAMS in message to topic : ',params)
         img = capture_pil(params['params'])
         b64_img = pil_to_base64(img, params)
         srpi = params['RPI_ID']
@@ -61,6 +60,18 @@ class Pub(QThread):
     
     def message(self, params, path):
         try:
+            
+            output = {
+                'data_type':'image',
+                'params':params,
+                'RPI_ID': self.ID
+                           }
+            output_json = json.dumps(output)
+            print(output_json)
+            (rc, mid) = self.clientMqtt.publish(self.topic, output_json)  # publishing
+            print(f'rc : {rc}, mid: {mid}')
+            self.signal_loadImages.emit("LoadImages")
+            
             img = capture_pil(params)
             imageName = params['imageName']
             _format = params['raw']
@@ -77,16 +88,6 @@ class Pub(QThread):
                 print('DB save configurations')
             else:
                 print('No Configurations saved Please check DB file')
-            output = {
-                'data_type':'image',
-                'params':params,
-                'RPI_ID': self.ID
-                           }
-            output_json = json.dumps(output)
-            print(output_json)
-            (rc, mid) = self.clientMqtt.publish(self.topic, output_json)  # publishing
-            print(f'rc : {rc}, mid: {mid}')
-            self.signal_loadImages.emit("LoadImages")
         except Exception as error:
             print(error)
 
