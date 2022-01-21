@@ -1,6 +1,6 @@
 import os
 
-server = '192.168.10.6'
+server = '192.168.50.227'
 RPI_ID = 1
 
 global_topic = "pro1/rpi/"

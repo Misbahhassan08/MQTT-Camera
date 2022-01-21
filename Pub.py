@@ -9,7 +9,7 @@ from config import server, RPI_ID, global_topic, pub_topic, sub_topic, path, ROO
 from Database import Database
 
 class Pub(QThread):
-    signal_loadImages = pyqtSignal(str,  name='m_signals')
+    signal_loadImages = pyqtSignal(str,  name='m_signals3')
     def __init__(self, ID, server, port) :
         QThread.__init__(self)
         self.clientMqtt = mqtt.Client()  
@@ -70,7 +70,7 @@ class Pub(QThread):
             print(output_json)
             (rc, mid) = self.clientMqtt.publish(self.topic, output_json)  # publishing
             print(f'rc : {rc}, mid: {mid}')
-            self.signal_loadImages.emit("LoadImages")
+            
             
             img = capture_pil(params)
             imageName = params['imageName']
@@ -88,6 +88,8 @@ class Pub(QThread):
                 print('DB save configurations')
             else:
                 print('No Configurations saved Please check DB file')
+            
+            self.signal_loadImages.emit("LoadImages")
         except Exception as error:
             print(error)
 
