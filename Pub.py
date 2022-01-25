@@ -19,8 +19,6 @@ class Pub(QThread):
         self.ID = ID
         
         self.db = Database()
-        self.ROOT = ROOT
-        self.path = path
         # --------- Initialize the Sub functions with proper function explain
         self.clientMqtt.on_connect = self.on_connect
         self.clientMqtt.on_publish = self.on_publish
@@ -72,15 +70,22 @@ class Pub(QThread):
             print(f'rc : {rc}, mid: {mid}')
             
             
+            _path = f"{ROOT}/{params['imageName']}_{params['time']}"
+            
             img = capture_pil(params)
             imageName = params['imageName']
             _format = params['raw']
             _time = str(params['time'])
             _imageName = f'RPI{self.ID}_{imageName}_{_time}.{_format}'
             
+            if not os.path.exists(_path):
+                os.makedirs(_path)              
+            img.save(f'{_path}/{_imageName}')
+            
             if not os.path.exists(path):
                 os.makedirs(path)              
-            img.save(f'{path}{_imageName}')
+            img.save(f'{path}/{_imageName}')
+            
             #b64_img = pil_to_base64(img, params)
             #result = self.db.add_entery(params) # for adding every new entry
             result = self.db.update_entry(params) # for update only last entry

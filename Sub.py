@@ -43,12 +43,12 @@ class Sub(QThread):
             self.new_mesg = True
             try:
                 data = json.loads(msg.payload)
-                print(data)
+                
                 if data['data_type'] == 'ReposeImage':
                     if data['SERVER_RPI_ID'] == f'RPI{RPI_ID}':
                         res_rpi = data['CLIENT_RPI_ID']
                         res_rpi_name = f'{res_rpi}'
-                        path = f'{self.ROOT}/{res_rpi_name}'
+                        path = f"{self.ROOT}/{data['imageName']}_{data['time']}"#{res_rpi_name}'
                         img = data['image']
                         image = base64_to_pil(img)
                         image_name = '{}_{}_{}.{}'.format(res_rpi_name,data['imageName'],data['time'],data['raw'])
