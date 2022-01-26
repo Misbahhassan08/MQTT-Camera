@@ -1,6 +1,5 @@
 import sys
 from Pub import Pub 
-from Sub import Sub
 import time
 import json
 from PyQt5 import QtCore, QtGui, QtWidgets

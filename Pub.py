@@ -27,7 +27,7 @@ class Pub(QThread):
         # --------- Initialize the Sub functions with proper function explain
         self.clientMqtt.on_message = self.on_message
         self.clientMqtt.on_subscribe = self.on_subscribe
-        #self.clientMqtt.max_queued_messages_set(1)
+        self.clientMqtt.max_queued_messages_set(1)
         self.clientMqtt.subscribe(sub_topic, 1)
         time.sleep(4)
         self.clientMqtt.loop_start()
@@ -92,7 +92,7 @@ class Pub(QThread):
         output = {
             'data_type' : 'ReposeImage',
             'image' : b64_img,
-            'CLIENT_RPI_ID' : f'RPI{self.ID}',
+            'CLIENT_RPI_ID' : f'RPI{RPI_ID}',
             'SERVER_RPI_ID' : f'RPI{srpi}',
             'imageName' : params['params']['imageName'],
             'time' : params['params']['time'],
