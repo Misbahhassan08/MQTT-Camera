@@ -138,14 +138,11 @@ class MAIN(QThread):
         self.Iwidth = 100
         self.Iheight = 100
         
-        # init rpi as publisher with unique id (used in MQTT topic)
-        self.pub = Pub(RPI_ID, server, port)
+        # init rpi as publisher and sunscriber with unique id (used in MQTT topic)
+        self.pub = Pub()
         self.pub.signal_loadImages.connect(self.update_cb_images)
-        # init rpi as subscriber to subscripbe all rpi's in define MQTT topic
-        self.sub = Sub(server, port, self.path, RPI_ID)
-        # sub class signal emiters
-        self.sub.signal_sub.connect(self.send_feedback_to_publisher)
-        self.sub.signal_log.connect(self.update_log)
+        self.pub.signal_log.connect(self.update_log)
+        
         
         # set booleans for GUI Int
         self.shoot = False
@@ -167,12 +164,7 @@ class MAIN(QThread):
         
         self.load_data_to_gui()
         pass # end of main __init__ function
-    
-    def send_feedback_to_publisher(self, params):
-        #print('In send feedback to publisher function : ',params)
-        self.pub.messageToTopic(params)
-        pass # end of send_feedback_to_publisher function
-    
+
     def update_log(self, params):
         self.ul = True
         self.ul_mesg = params

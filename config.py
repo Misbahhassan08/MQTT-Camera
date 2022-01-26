@@ -1,6 +1,7 @@
 import os
 
 server = '192.168.10.6'
+port = 1883
 RPI_ID = 1
 
 global_topic = "pro1/rpi/"
